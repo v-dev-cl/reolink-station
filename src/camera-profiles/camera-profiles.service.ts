@@ -53,6 +53,11 @@ export class CameraProfilesService {
       .then((rows) => rows.map((r) => this.toMasked(r)));
   }
 
+  async listAllIds(): Promise<string[]> {
+    const rows = await this.repo.find({ select: ['id'] });
+    return rows.map((r) => r.id);
+  }
+
   private async load(id: string): Promise<CameraProfileEntity> {
     const p = await this.repo.findOne({ where: { id } });
     if (!p) throw new NotFoundException('profile not found');
