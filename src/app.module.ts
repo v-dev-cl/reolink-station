@@ -10,6 +10,7 @@ import { InvitesModule } from './invites/invites.module';
 import { CameraProfilesModule } from './camera-profiles/camera-profiles.module';
 import { SharingModule } from './sharing/sharing.module';
 import { RecordingsModule } from './recordings/recordings.module';
+import { LiveModule } from './live/live.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { RecordingsModule } from './recordings/recordings.module';
     CameraProfilesModule,
     SharingModule,
     RecordingsModule,
+    LiveModule,
   ],
   controllers: [HealthController],
 })
