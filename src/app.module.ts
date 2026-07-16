@@ -6,7 +6,10 @@ import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env.test', '.env'] }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'test' ? ['.env.test'] : ['.env'],
+    }),
     TypeOrmModule.forRootAsync({ inject: [ConfigService], useFactory: databaseConfig }),
   ],
   controllers: [HealthController],
