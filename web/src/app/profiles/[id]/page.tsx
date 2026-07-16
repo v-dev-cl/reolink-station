@@ -1,0 +1,25 @@
+'use client';
+import { use, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { api, CameraProfile } from '@/lib/api';
+import ProfileForm from '@/components/ProfileForm';
+import SharePanel from '@/components/SharePanel';
+import NavBar from '@/components/NavBar';
+
+export default function ProfileDetail({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const [p, setP] = useState<CameraProfile | null>(null);
+  useEffect(() => { api.get<CameraProfile>(`/camera-profiles/${id}`).then(setP).catch(() => setP(null)); }, [id]);
+  if (!p) return <><NavBar /><main className="p-6 text-neutral-400">Loading…</main></>;
+  return (
+    <>
+      <NavBar />
+      <main className="mx-auto max-w-md">
+        <h1 className="px-6 pt-6 text-xl font-semibold">{p.name}</h1>
+        <ProfileForm mode="edit" profileId={id} initial={p} onDone={() => router.replace('/')} />
+        <SharePanel profileId={id} />
+      </main>
+    </>
+  );
+}
