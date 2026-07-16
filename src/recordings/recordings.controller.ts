@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CameraAccessGuard } from '../sharing/camera-access.guard';
@@ -21,8 +21,14 @@ export class RecordingsController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
+    if (!path) throw new BadRequestException('path is required');
     const { size } = await this.recordings.stat(id, path);
     const range = parseRange(req.headers.range, size);
+    if (range === 'unsatisfiable') {
+      res.status(416).setHeader('Content-Range', `bytes */${size}`);
+      res.end();
+      return;
+    }
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', contentType(path));
     if (range) {
@@ -40,13 +46,26 @@ export class RecordingsController {
   }
 }
 
-function parseRange(header: string | undefined, size: number): { start: number; end: number } | null {
+function parseRange(header: string | undefined, size: number): { start: number; end: number } | null | 'unsatisfiable' {
   if (!header) return null;
   const m = /^bytes=(\d*)-(\d*)$/.exec(header.trim());
-  if (!m) return null;
-  let start = m[1] === '' ? 0 : parseInt(m[1], 10);
-  let end = m[2] === '' ? size - 1 : parseInt(m[2], 10);
-  if (Number.isNaN(start) || Number.isNaN(end) || start > end || end >= size) { start = 0; end = size - 1; }
+  if (!m) return null; // malformed → serve full file
+  const hasStart = m[1] !== '';
+  const hasEnd = m[2] !== '';
+  if (!hasStart && !hasEnd) return null;
+  let start: number;
+  let end: number;
+  if (!hasStart) {
+    const n = parseInt(m[2], 10); // suffix: last N bytes
+    if (n === 0) return 'unsatisfiable';
+    start = Math.max(0, size - n);
+    end = size - 1;
+  } else {
+    start = parseInt(m[1], 10);
+    end = hasEnd ? parseInt(m[2], 10) : size - 1;
+    if (end >= size) end = size - 1;
+  }
+  if (start > end || start >= size) return 'unsatisfiable';
   return { start, end };
 }
 function contentType(p: string): string {

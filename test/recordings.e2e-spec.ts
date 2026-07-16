@@ -71,4 +71,35 @@ describe('Recordings (e2e)', () => {
     await request(app.getHttpServer())
       .get(`/camera-profiles/${profileId}/recordings/list?dir=`).set('Cookie', `access_token=${auth.signToken(other)}`).expect(404);
   });
+
+  it('serves a suffix range (last N bytes)', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/camera-profiles/${profileId}/recordings/file?path=2026/07/15/clip.mp4`)
+      .set('Cookie', cookie).set('Range', 'bytes=-5').expect(206);
+    expect(res.headers['content-range']).toBe('bytes 5-9/10');
+    expect(res.body.toString()).toBe('56789');
+  });
+  it('serves an open-ended range (bytes=0-)', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/camera-profiles/${profileId}/recordings/file?path=2026/07/15/clip.mp4`)
+      .set('Cookie', cookie).set('Range', 'bytes=0-').expect(206);
+    expect(res.headers['content-range']).toBe('bytes 0-9/10');
+    expect(res.body.toString()).toBe('0123456789');
+  });
+  it('returns 416 for an unsatisfiable range', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/camera-profiles/${profileId}/recordings/file?path=2026/07/15/clip.mp4`)
+      .set('Cookie', cookie).set('Range', 'bytes=100-200').expect(416);
+    expect(res.headers['content-range']).toBe('bytes */10');
+  });
+  it('returns 400 when path is missing', async () => {
+    await request(app.getHttpServer())
+      .get(`/camera-profiles/${profileId}/recordings/file`).set('Cookie', cookie).expect(400);
+  });
+  it('a non-owner cannot stream a file (404)', async () => {
+    const stranger = await users.create('stranger@x.com', await auth.hashPassword('pw'));
+    await request(app.getHttpServer())
+      .get(`/camera-profiles/${profileId}/recordings/file?path=2026/07/15/clip.mp4`)
+      .set('Cookie', `access_token=${auth.signToken(stranger)}`).expect(404);
+  });
 });
