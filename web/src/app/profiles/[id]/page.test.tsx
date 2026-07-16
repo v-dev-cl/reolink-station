@@ -41,4 +41,6 @@ it('renders the profile once the fetch succeeds', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify(profile), { status: 200 })));
   await renderDetail('x');
   expect(await screen.findByText('Front door')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /view recordings/i }))
+    .toHaveAttribute('href', expect.stringMatching(/\/profiles\/.+\/recordings$/));
 });

@@ -84,6 +84,10 @@ BACKEND_URL=http://localhost:3000 pnpm build && pnpm start &
 TEST_EMAIL=e2e@x.com TEST_PASSWORD=password123 pnpm e2e
 ```
 
+## Recordings
+
+Browse per-camera recordings at `/profiles/<id>/recordings` (linked from the "View recordings →" button on the profile detail page). The browser navigates the storage tree (typically `/YYYY/MM/DD`), shows thumbnails, and plays clips with seeking; thumbnails and video stream through the authenticated `/api` proxy, which forwards `Range` requests so seeking works without buffering the whole file. Deleting recordings (single or bulk via selection) and manual "older than N days" pruning are available from the manager bar and require `manage` permission on the profile — view-only shares get a friendly 403 message instead of the controls.
+
 ## Out of scope (this plan)
 
-Recordings browser, video player, and delete/prune UI are not part of this plan (2b-i); the profile detail page (`src/app/profiles/[id]/page.tsx`) has the seam (a recordings tab) to add them later.
+Live view and a shares list/revoke UI are not part of this plan; a download button is deferred as polish (the browser can already save clips from the player or `recordingFileUrl` directly).
