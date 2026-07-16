@@ -141,4 +141,22 @@ describe('Recordings (e2e)', () => {
       .send({ olderThanDays: 30 }).expect(201);
     expect(res.body.deleted).toBeGreaterThanOrEqual(1);
   });
+
+  it('rejects an empty delete paths array (400)', async () => {
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${profileId}/recordings/delete`).set('Cookie', cookie)
+      .send({ paths: [] }).expect(400);
+  });
+
+  it('rejects a traversal path in delete (403)', async () => {
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${profileId}/recordings/delete`).set('Cookie', cookie)
+      .send({ paths: ['../../etc/passwd'] }).expect(403);
+  });
+
+  it('rejects prune olderThanDays < 1 (400)', async () => {
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${profileId}/recordings/prune`).set('Cookie', cookie)
+      .send({ olderThanDays: 0 }).expect(400);
+  });
 });
