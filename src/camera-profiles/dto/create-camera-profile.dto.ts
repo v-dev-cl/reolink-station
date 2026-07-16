@@ -5,12 +5,12 @@ class StorageDto {
   @IsString() host!: string;
   @IsInt() port!: number;
   @IsString() user!: string;
-  @IsString() pass!: string;
+  @IsString() @MinLength(1) pass!: string;
   @IsString() basePath!: string;
 }
 class CameraDto {
   @IsString() uid!: string;
-  @IsString() password!: string;
+  @IsString() @MinLength(1) password!: string;
 }
 export class CreateCameraProfileDto {
   @IsString() @MinLength(1) name!: string;
