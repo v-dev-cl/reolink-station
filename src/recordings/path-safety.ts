@@ -6,6 +6,9 @@ import * as path from 'node:path';
  * if and only if it stays within basePath; throws ForbiddenException otherwise.
  */
 export function resolveSafe(basePath: string, relative: string): string {
+  if (relative != null && typeof relative !== 'string') {
+    throw new ForbiddenException('invalid path');
+  }
   const base = path.posix.normalize(basePath).replace(/\/+$/, '') || '/';
   const rel = relative ?? '';
   // Reject absolute inputs outright; callers pass paths relative to base.

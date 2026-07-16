@@ -20,4 +20,15 @@ describe('resolveSafe', () => {
   it('rejects a sibling-prefix escape', () => {
     expect(() => resolveSafe('/reolink', '../reolink-evil/x')).toThrow(ForbiddenException);
   });
+  it('rejects a non-string (e.g. array) path input', () => {
+    expect(() => resolveSafe(base, ['a', 'b'] as unknown as string)).toThrow(ForbiddenException);
+    expect(() => resolveSafe(base, 123 as unknown as string)).toThrow(ForbiddenException);
+  });
+  it('rejects a double-slash absolute escape and bare ..', () => {
+    expect(() => resolveSafe(base, '//etc/passwd')).toThrow(ForbiddenException);
+    expect(() => resolveSafe(base, '..')).toThrow(ForbiddenException);
+  });
+  it('normalizes doubled inner slashes for a legitimate path', () => {
+    expect(resolveSafe(base, 'foo//bar')).toBe('/reolink/foo/bar');
+  });
 });
