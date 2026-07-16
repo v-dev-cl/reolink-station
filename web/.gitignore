@@ -1,3 +1,10 @@
 node_modules
 .next
 next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Playwright (opt-in e2e smoke, see e2e/ and README.md)
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
