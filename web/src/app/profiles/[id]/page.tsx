@@ -1,6 +1,7 @@
 'use client';
 import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api, CameraProfile } from '@/lib/api';
 import ProfileForm from '@/components/ProfileForm';
 import SharePanel from '@/components/SharePanel';
@@ -23,6 +24,12 @@ export default function ProfileDetail({ params }: { params: Promise<{ id: string
       <NavBar />
       <main className="mx-auto max-w-md">
         <h1 className="px-6 pt-6 text-xl font-semibold">{p.name}</h1>
+        <Link
+          href={`/profiles/${id}/recordings`}
+          className="mx-6 mt-2 inline-block rounded bg-blue-600 px-3 py-1.5 text-sm"
+        >
+          View recordings →
+        </Link>
         <ProfileForm mode="edit" profileId={id} initial={p} onDone={() => router.replace('/')} />
         <SharePanel profileId={id} />
       </main>
