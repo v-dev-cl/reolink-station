@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as crypto from 'node:crypto';
 
+const B64URL = /^[A-Za-z0-9_-]+$/;
+
 @Injectable()
 export class CryptoService {
   private readonly algorithm = 'aes-256-gcm';
@@ -44,10 +46,10 @@ export class CryptoService {
     const parts = value.split(':');
     if (parts.length !== 3) return false;
     const [iv, tag, ct] = parts;
-    const b64url = /^[A-Za-z0-9_-]+$/;
-    if (iv.length !== 16 || tag.length !== 22 || ct.length === 0) return false;
-    if (!b64url.test(iv) || !b64url.test(tag) || !b64url.test(ct)) return false;
-    // Definitive check: only a value that authenticates under our key counts as encrypted.
+    if (iv.length !== 16 || tag.length !== 22) return false;
+    if (!B64URL.test(iv) || !B64URL.test(tag)) return false;
+    if (ct.length > 0 && !B64URL.test(ct)) return false;
+    // Auth-tag verification is the sole arbiter (also covers empty-ciphertext correctly).
     try {
       this.decrypt(value);
       return true;

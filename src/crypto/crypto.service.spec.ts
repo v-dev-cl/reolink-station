@@ -46,4 +46,12 @@ describe('CryptoService', () => {
   it('still recognizes real ciphertext (round-trips through decrypt)', () => {
     expect(svc.isEncrypted(svc.encrypt('a-real-secret'))).toBe(true);
   });
+
+  it('recognizes genuine ciphertext of an empty string', () => {
+    expect(svc.isEncrypted(svc.encrypt(''))).toBe(true);
+  });
+
+  it('still rejects an empty-ciphertext spoof that does not authenticate', () => {
+    expect(svc.isEncrypted('aaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbb:')).toBe(false);
+  });
 });
