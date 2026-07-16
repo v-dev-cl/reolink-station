@@ -24,7 +24,15 @@ export class CameraProfilesController {
   @Get()
   async list(@CurrentUser() u: AuthUser) {
     const ids = await this.access.accessibleProfileIds(u.userId);
-    return Promise.all(ids.map((id) => this.profiles.getMasked(id)));
+    const out = [];
+    for (const id of ids) {
+      try {
+        out.push(await this.profiles.getMasked(id));
+      } catch {
+        // stale/removed profile — skip
+      }
+    }
+    return out;
   }
 
   @UseGuards(CameraAccessGuard)

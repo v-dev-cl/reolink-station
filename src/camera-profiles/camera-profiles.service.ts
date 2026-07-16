@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CryptoService } from '../crypto/crypto.service';
+import { CameraShareEntity } from '../sharing/camera-share.entity';
 import { CameraProfileEntity } from './camera-profile.entity';
 import {
   CAMERA_SECRET_KEYS, CameraConfig, STORAGE_SECRET_KEYS, StorageConfig,
@@ -14,6 +15,7 @@ import { UpdateCameraProfileDto } from './dto/update-camera-profile.dto';
 export class CameraProfilesService {
   constructor(
     @InjectRepository(CameraProfileEntity) private readonly repo: Repository<CameraProfileEntity>,
+    @InjectRepository(CameraShareEntity) private readonly shares: Repository<CameraShareEntity>,
     private readonly crypto: CryptoService,
   ) {}
 
@@ -86,7 +88,11 @@ export class CameraProfilesService {
     return this.toMasked(await this.repo.save(p));
   }
 
-  async remove(id: string) { await this.repo.delete({ id }); return { ok: true }; }
+  async remove(id: string) {
+    await this.shares.delete({ cameraProfileId: id });
+    await this.repo.delete({ id });
+    return { ok: true };
+  }
 }
 
 function stripBlank<T extends Record<string, any>>(obj: T): Partial<T> {

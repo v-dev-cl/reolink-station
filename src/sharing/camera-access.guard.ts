@@ -1,9 +1,10 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  CanActivate, ExecutionContext, ForbiddenException, Injectable, NotFoundException, SetMetadata,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CameraAccessService } from './camera-access.service';
 
 export const REQUIRE_MANAGE = 'require_manage';
-import { SetMetadata } from '@nestjs/common';
 export const RequireManage = () => SetMetadata(REQUIRE_MANAGE, true);
 
 @Injectable()

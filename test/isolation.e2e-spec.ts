@@ -68,4 +68,33 @@ describe('Tenant isolation (e2e)', () => {
     const bList = await request(app.getHttpServer()).get('/camera-profiles').set('Cookie', bCookie).expect(200);
     expect(bList.body).toHaveLength(0);
   });
+
+  it('a view grantee cannot add or remove shares (manage-gated 403)', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/camera-profiles').set('Cookie', aCookie).send(profileBody).expect(201);
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${created.body.id}/shares`).set('Cookie', aCookie)
+      .send({ email: 'b@x.com', permission: 'view' }).expect(201);
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${created.body.id}/shares`).set('Cookie', bCookie)
+      .send({ email: 'a@x.com', permission: 'view' }).expect(403);
+  });
+
+  it('returns 404 (not 500) for a non-UUID profile id', async () => {
+    await request(app.getHttpServer())
+      .get('/camera-profiles/not-a-uuid').set('Cookie', aCookie).expect(404);
+  });
+
+  it('deleting a shared profile does not break the grantee\'s list', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/camera-profiles').set('Cookie', aCookie).send(profileBody).expect(201);
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${created.body.id}/shares`).set('Cookie', aCookie)
+      .send({ email: 'b@x.com', permission: 'view' }).expect(201);
+    await request(app.getHttpServer())
+      .delete(`/camera-profiles/${created.body.id}`).set('Cookie', aCookie).expect(200);
+    const bList = await request(app.getHttpServer())
+      .get('/camera-profiles').set('Cookie', bCookie).expect(200);
+    expect(bList.body).toHaveLength(0);
+  });
 });

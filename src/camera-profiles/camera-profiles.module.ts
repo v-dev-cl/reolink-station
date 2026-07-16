@@ -4,9 +4,10 @@ import { CameraProfileEntity } from './camera-profile.entity';
 import { CameraProfilesService } from './camera-profiles.service';
 import { CameraProfilesController } from './camera-profiles.controller';
 import { SharingModule } from '../sharing/sharing.module';
+import { CameraShareEntity } from '../sharing/camera-share.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CameraProfileEntity]), SharingModule],
+  imports: [TypeOrmModule.forFeature([CameraProfileEntity, CameraShareEntity]), SharingModule],
   controllers: [CameraProfilesController],
   providers: [CameraProfilesService],
   exports: [CameraProfilesService],

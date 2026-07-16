@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CameraAccessGuard, RequireManage } from './camera-access.guard';
 import { SharingService } from './sharing.service';
@@ -16,7 +16,7 @@ export class SharingController {
   }
 
   @Delete(':granteeId')
-  revoke(@Param('id') id: string, @Param('granteeId') granteeId: string) {
+  revoke(@Param('id') id: string, @Param('granteeId', ParseUUIDPipe) granteeId: string) {
     return this.sharing.revoke(id, granteeId);
   }
 }

@@ -6,6 +6,8 @@ import { CameraShareEntity } from './camera-share.entity';
 
 export type AccessLevel = 'owner' | 'manage' | 'view' | null;
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 @Injectable()
 export class CameraAccessService {
   constructor(
@@ -14,6 +16,7 @@ export class CameraAccessService {
   ) {}
 
   async access(userId: string, profileId: string): Promise<AccessLevel> {
+    if (!UUID_RE.test(profileId)) return null;
     const profile = await this.profiles.findOne({ where: { id: profileId } });
     if (!profile) return null;
     if (profile.ownerId === userId) return 'owner';
