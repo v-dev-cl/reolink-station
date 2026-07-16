@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { InvitesModule } from './invites/invites.module';
 import { CameraProfilesModule } from './camera-profiles/camera-profiles.module';
+import { SharingModule } from './sharing/sharing.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CameraProfilesModule } from './camera-profiles/camera-profiles.module';
     AuthModule,
     InvitesModule,
     CameraProfilesModule,
+    SharingModule,
   ],
   controllers: [HealthController],
 })
