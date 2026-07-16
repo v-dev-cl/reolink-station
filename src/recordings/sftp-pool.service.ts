@@ -10,18 +10,21 @@ const IDLE_MS = 30_000;
 @Injectable()
 export class SftpPoolService implements OnModuleDestroy {
   private readonly pools = new Map<string, Pool<SftpClient>>();
+  private readonly cfgs = new Map<string, SftpConnConfig>();
 
   private key(c: SftpConnConfig): string { return `${c.host}:${c.port}:${c.user}`; }
 
   private poolFor(cfg: SftpConnConfig): Pool<SftpClient> {
     const k = this.key(cfg);
+    this.cfgs.set(k, cfg); // always refresh to the latest credentials
     let pool = this.pools.get(k);
     if (!pool) {
       pool = createPool<SftpClient>(
         {
           create: async () => {
+            const cur = this.cfgs.get(k)!;
             const client = new SftpClient();
-            await client.connect({ host: cfg.host, port: cfg.port, username: cfg.user, password: cfg.pass });
+            await client.connect({ host: cur.host, port: cur.port, username: cur.user, password: cur.pass });
             return client;
           },
           destroy: async (client) => { await client.end().catch(() => undefined); },
@@ -29,7 +32,14 @@ export class SftpPoolService implements OnModuleDestroy {
             try { await client.exists('.'); return true; } catch { return false; }
           },
         },
-        { max: MAX_PER_BOX, min: 0, idleTimeoutMillis: IDLE_MS, testOnBorrow: true, acquireTimeoutMillis: 20_000 },
+        {
+          max: MAX_PER_BOX,
+          min: 0,
+          idleTimeoutMillis: IDLE_MS,
+          evictionRunIntervalMillis: IDLE_MS,
+          testOnBorrow: true,
+          acquireTimeoutMillis: 20_000,
+        },
       );
       this.pools.set(k, pool);
     }
@@ -52,5 +62,6 @@ export class SftpPoolService implements OnModuleDestroy {
       await pool.clear();
     }
     this.pools.clear();
+    this.cfgs.clear();
   }
 }

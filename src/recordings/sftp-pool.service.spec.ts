@@ -12,11 +12,21 @@ describe('SftpPoolService (integration, needs sftp-test container)', () => {
     expect(Array.isArray(list)).toBe(true);
   });
 
-  it('serves many concurrent ops without exceeding the pool (no errors)', async () => {
-    const results = await Promise.all(
-      Array.from({ length: 12 }, () => pool.withConnection(cfg, (c) => c.exists('/reolink'))),
+  it('never runs more than 4 operations concurrently (enforces max)', async () => {
+    let inFlight = 0; let peak = 0;
+    await Promise.all(
+      Array.from({ length: 12 }, () =>
+        pool.withConnection(cfg, async (c) => {
+          inFlight++; peak = Math.max(peak, inFlight);
+          await c.exists('/reolink');
+          await new Promise((r) => setTimeout(r, 50)); // hold the connection so concurrency builds
+          inFlight--;
+          return true;
+        }),
+      ),
     );
-    expect(results.every((r) => r !== false)).toBe(true);
+    expect(peak).toBeGreaterThan(1);   // genuinely concurrent
+    expect(peak).toBeLessThanOrEqual(4); // but capped
   });
 
   it('rejects with the operation error but still releases the connection', async () => {
