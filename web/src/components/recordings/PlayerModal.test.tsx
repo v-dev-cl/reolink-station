@@ -25,3 +25,12 @@ it('close button calls onClose', async () => {
   await userEvent.click(screen.getByRole('button', { name: /close/i }));
   expect(onClose).toHaveBeenCalled();
 });
+
+it('closes on backdrop click but not on content click', async () => {
+  const onClose = vi.fn();
+  render(<PlayerModal profileId="p1" entry={vid} onClose={onClose} />);
+  await userEvent.click(screen.getByTestId('player')); // content — must NOT close
+  expect(onClose).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('dialog', { name: 'clip.mp4' })); // backdrop
+  expect(onClose).toHaveBeenCalledTimes(1);
+});
