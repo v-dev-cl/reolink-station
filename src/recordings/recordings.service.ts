@@ -4,10 +4,12 @@ import { SftpConnConfig, SftpPoolService } from './sftp-pool.service';
 import { CameraProfilesService } from '../camera-profiles/camera-profiles.service';
 import { resolveSafe } from './path-safety';
 import { RangeSpec, RecordingEntry } from './types';
+import { TtlCache } from './recordings.cache';
 
 @Injectable()
 export class RecordingsService {
   private readonly logger = new Logger(RecordingsService.name);
+  private readonly listCache = new TtlCache<RecordingEntry[]>(10_000);
 
   constructor(
     private readonly pool: SftpPoolService,
@@ -21,9 +23,12 @@ export class RecordingsService {
   }
 
   async listDir(profileId: string, relDir: string): Promise<RecordingEntry[]> {
+    const cacheKey = `${profileId}:${relDir}`;
+    const cached = this.listCache.get(cacheKey);
+    if (cached) return cached;
     const { cfg, base } = await this.conn(profileId);
     const abs = resolveSafe(base, relDir);
-    return this.pool.withConnection(cfg, async (c) => {
+    const entries = await this.pool.withConnection<RecordingEntry[]>(cfg, async (c) => {
       const items = await c.list(abs);
       return items.map((i) => ({
         name: i.name,
@@ -33,6 +38,8 @@ export class RecordingsService {
         mtime: i.modifyTime,
       }));
     });
+    this.listCache.set(cacheKey, entries);
+    return entries;
   }
 
   async stat(profileId: string, relPath: string): Promise<{ size: number; mtime: number }> {
@@ -58,19 +65,21 @@ export class RecordingsService {
   async deleteFiles(profileId: string, relPaths: string[]): Promise<{ deleted: number }> {
     const { cfg, base } = await this.conn(profileId);
     const abses = relPaths.map((r) => resolveSafe(base, r));
-    return this.pool.withConnection(cfg, async (c) => {
+    const result = await this.pool.withConnection(cfg, async (c) => {
       let deleted = 0;
       for (const abs of abses) {
         try { await c.delete(abs); deleted++; } catch (err) { this.logger.warn(`failed to delete ${abs}: ${err instanceof Error ? err.message : err}`); }
       }
       return { deleted };
     });
+    this.listCache.invalidate(`${profileId}:`);
+    return result;
   }
 
   async prune(profileId: string, olderThanDays: number): Promise<{ deleted: number }> {
     const { cfg, base } = await this.conn(profileId);
     const cutoff = daysAgoEpoch(olderThanDays);
-    return this.pool.withConnection(cfg, async (c) => {
+    const result = await this.pool.withConnection(cfg, async (c) => {
       let deleted = 0;
       const walk = async (dir: string): Promise<void> => {
         const items = await c.list(dir);
@@ -83,6 +92,8 @@ export class RecordingsService {
       await walk(resolveSafe(base, ''));
       return { deleted };
     });
+    this.listCache.invalidate(`${profileId}:`);
+    return result;
   }
 }
 

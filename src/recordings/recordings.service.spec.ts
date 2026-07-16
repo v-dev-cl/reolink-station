@@ -75,7 +75,11 @@ describe('RecordingsService (integration)', () => {
     expect(entries.map((e) => e.name)).toEqual(['clip.mp4']);
   });
 
-  it('prunes files older than N days', async () => {
+  it('prunes files older than N days, invalidating a previously-cached listing', async () => {
+    // populate the listCache for '2000/01/01' before pruning, so this genuinely
+    // exercises invalidation rather than an incidental cache-miss re-list.
+    const before = await svc.listDir(P, '2000/01/01');
+    expect(before.map((e) => e.name)).toEqual(['old.mp4']);
     const { deleted } = await svc.prune(P, 30);
     expect(deleted).toBeGreaterThanOrEqual(1); // the 2000/01/01/old.mp4
     const gone = await svc.listDir(P, '2000/01/01').catch(() => []);
