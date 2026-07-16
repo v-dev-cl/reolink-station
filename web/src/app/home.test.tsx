@@ -13,3 +13,10 @@ it('renders the home landmark', async () => {
   await waitFor(() => expect(screen.getByText('No cameras yet.')).toBeInTheDocument());
   vi.unstubAllGlobals();
 });
+
+it('renders the empty state when the camera fetch fails', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('err', { status: 500 })));
+  render(<Home />);
+  expect(await screen.findByText(/no cameras yet/i)).toBeInTheDocument();
+  vi.unstubAllGlobals();
+});
