@@ -74,4 +74,22 @@ describe('Live (e2e)', () => {
     await request(app.getHttpServer())
       .get(`/camera-profiles/${profileId}/live/stream.mp4`).set('Cookie', `access_token=${auth.signToken(other)}`).expect(404);
   });
+
+  it('a view-grantee can watch the stream but cannot PTZ (403)', async () => {
+    const viewer = await users.create('viewer@x.com', await auth.hashPassword('pw'));
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${profileId}/shares`).set('Cookie', cookie)
+      .send({ email: 'viewer@x.com', permission: 'view' }).expect(201);
+    const vCookie = `access_token=${auth.signToken(viewer)}`;
+    // view-level access CAN watch:
+    const realFetch = global.fetch;
+    global.fetch = (async () => new Response(Buffer.from('mp4'), { status: 200, headers: { 'Content-Type': 'video/mp4' } })) as typeof fetch;
+    try {
+      await request(app.getHttpServer())
+        .get(`/camera-profiles/${profileId}/live/stream.mp4`).set('Cookie', vCookie).expect(200);
+    } finally { global.fetch = realFetch; }
+    // but CANNOT move the camera (manage required):
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${profileId}/ptz`).set('Cookie', vCookie).send({ command: 'left' }).expect(403);
+  });
 });
