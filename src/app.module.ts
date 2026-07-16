@@ -7,6 +7,7 @@ import { CryptoModule } from './crypto/crypto.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { InvitesModule } from './invites/invites.module';
+import { CameraProfilesModule } from './camera-profiles/camera-profiles.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { InvitesModule } from './invites/invites.module';
     UsersModule,
     AuthModule,
     InvitesModule,
+    CameraProfilesModule,
   ],
   controllers: [HealthController],
 })
