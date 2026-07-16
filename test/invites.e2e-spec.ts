@@ -52,4 +52,26 @@ describe('Invites (e2e)', () => {
     await request(app.getHttpServer())
       .post('/invites/redeem').send({ token: 'nope', password: 'whatever12' }).expect(400);
   });
+
+  it('rejects redeeming an invite whose email already has an account (409)', async () => {
+    await users.create('taken@example.com', await auth.hashPassword('pw'));
+    const inv = await request(app.getHttpServer())
+      .post('/invites').set('Cookie', adminCookie)
+      .send({ email: 'taken@example.com' }).expect(201);
+    await request(app.getHttpServer())
+      .post('/invites/redeem')
+      .send({ token: inv.body.token, password: 'password123' }).expect(409);
+  });
+
+  it('rejects reusing a token that was already redeemed (400)', async () => {
+    const inv = await request(app.getHttpServer())
+      .post('/invites').set('Cookie', adminCookie)
+      .send({ email: 'once@example.com' }).expect(201);
+    await request(app.getHttpServer())
+      .post('/invites/redeem')
+      .send({ token: inv.body.token, password: 'password123' }).expect(201);
+    await request(app.getHttpServer())
+      .post('/invites/redeem')
+      .send({ token: inv.body.token, password: 'password123' }).expect(400);
+  });
 });
