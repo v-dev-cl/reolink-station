@@ -10,8 +10,14 @@ export default function ProfileDetail({ params }: { params: Promise<{ id: string
   const { id } = use(params);
   const router = useRouter();
   const [p, setP] = useState<CameraProfile | null>(null);
-  useEffect(() => { api.get<CameraProfile>(`/camera-profiles/${id}`).then(setP).catch(() => setP(null)); }, [id]);
-  if (!p) return <><NavBar /><main className="p-6 text-neutral-400">Loading…</main></>;
+  const [status, setStatus] = useState<'loading' | 'error' | 'ok'>('loading');
+  useEffect(() => {
+    api.get<CameraProfile>(`/camera-profiles/${id}`)
+      .then((res) => { setP(res); setStatus('ok'); })
+      .catch(() => setStatus('error'));
+  }, [id]);
+  if (status === 'loading') return <><NavBar /><main className="p-6 text-neutral-400">Loading…</main></>;
+  if (status === 'error' || !p) return <><NavBar /><main className="p-6 text-neutral-400" role="alert">This camera couldn’t be loaded — it may not exist or you may not have access.</main></>;
   return (
     <>
       <NavBar />

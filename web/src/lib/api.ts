@@ -9,7 +9,12 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!res.ok) throw new ApiError(res.status, await res.text().catch(() => undefined));
+  if (!res.ok) {
+    if (res.status === 401 && path !== '/auth/login' && typeof window !== 'undefined') {
+      window.location.assign('/login');
+    }
+    throw new ApiError(res.status, await res.text().catch(() => undefined));
+  }
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;
 }

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi } from 'vitest';
 import ProfileForm from './ProfileForm';
@@ -19,6 +19,27 @@ it('creates a profile with the entered values', async () => {
   const body = JSON.parse(spy.mock.calls[0][1].body);
   expect(body).toMatchObject({ name: 'Front door', storage: { host: 'u1-sub1.your-storagebox.de', user: 'u1-sub1', pass: 'sPASS', basePath: '/reolink' }, camera: { uid: 'UID', password: 'cPASS' } });
   expect(onDone).toHaveBeenCalled();
+});
+
+it('rejects a blank/invalid port without calling fetch', async () => {
+  const spy = vi.fn(async () => new Response('{}', { status: 201 }));
+  vi.stubGlobal('fetch', spy);
+  const { container } = render(<ProfileForm mode="create" onDone={vi.fn()} />);
+  await userEvent.type(screen.getByLabelText(/name/i), 'Front door');
+  await userEvent.type(screen.getByLabelText(/^host/i), 'u1-sub1.your-storagebox.de');
+  await userEvent.type(screen.getByLabelText(/storage user/i), 'u1-sub1');
+  await userEvent.type(screen.getByLabelText(/storage password/i), 'sPASS');
+  await userEvent.type(screen.getByLabelText(/base path/i), '/reolink');
+  await userEvent.type(screen.getByLabelText(/camera uid/i), 'UID');
+  await userEvent.type(screen.getByLabelText(/camera password/i), 'cPASS');
+  // type="number" + required means jsdom's native constraint validation blocks a real
+  // click-submit before our onSubmit ever runs; clear the value and dispatch the form's
+  // submit event directly so we exercise our own guard instead of jsdom's.
+  await userEvent.clear(screen.getByLabelText(/port/i));
+  const form = container.querySelector('form')!;
+  fireEvent.submit(form);
+  expect(await screen.findByRole('alert')).toHaveTextContent(/port must be a number between 1 and 65535/i);
+  expect(spy).not.toHaveBeenCalled();
 });
 
 it('omits a blank secret on edit (keep-stored)', async () => {

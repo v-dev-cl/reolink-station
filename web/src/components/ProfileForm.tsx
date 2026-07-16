@@ -20,7 +20,12 @@ export default function ProfileForm(props:
 
   async function submit(e: React.FormEvent) {
     e.preventDefault(); setError('');
-    const storage: Record<string, unknown> = { host, port: Number(port), user: sUser, basePath };
+    const portNum = Number(port);
+    if (!Number.isFinite(portNum) || portNum <= 0 || portNum > 65535) {
+      setError('Port must be a number between 1 and 65535');
+      return;
+    }
+    const storage: Record<string, unknown> = { host, port: portNum, user: sUser, basePath };
     const camera: Record<string, unknown> = { uid };
     if (sPass) storage.pass = sPass;           // blank = keep stored (edit) / required by API (create)
     if (cPass) camera.password = cPass;
@@ -37,7 +42,7 @@ export default function ProfileForm(props:
     <form onSubmit={submit} className="mx-auto flex max-w-md flex-col gap-3 p-6">
       <Field label="Name" value={name} onChange={setName} required />
       <Field label="Host" value={host} onChange={setHost} required />
-      <Field label="Port" value={port} onChange={setPort} />
+      <Field label="Port" value={port} onChange={setPort} type="number" required />
       <Field label="Storage user" value={sUser} onChange={setSUser} required />
       <Field label="Storage password" value={sPass} onChange={setSPass} type="password" placeholder={secretPlaceholder} required={!editing} />
       <Field label="Base path" value={basePath} onChange={setBasePath} required />
