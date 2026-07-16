@@ -18,7 +18,8 @@ export function resolveSafe(basePath: string, relative: string): string {
     throw new ForbiddenException('path escapes base directory');
   }
   const resolved = path.posix.normalize(path.posix.join(base, rel));
-  if (resolved !== base && !resolved.startsWith(base + '/')) {
+  const prefix = base === '/' ? '/' : base + '/';
+  if (resolved !== base && !resolved.startsWith(prefix)) {
     throw new ForbiddenException('path escapes base directory');
   }
   return resolved;

@@ -31,4 +31,16 @@ describe('resolveSafe', () => {
   it('normalizes doubled inner slashes for a legitimate path', () => {
     expect(resolveSafe(base, 'foo//bar')).toBe('/reolink/foo/bar');
   });
+
+  describe('with base "/"', () => {
+    it('resolves a normal subpath under root', () => {
+      expect(resolveSafe('/', '2026/07/15/clip.mp4')).toBe('/2026/07/15/clip.mp4');
+    });
+    it('treats empty as root', () => {
+      expect(resolveSafe('/', '')).toBe('/');
+    });
+    it('still rejects absolute input', () => {
+      expect(() => resolveSafe('/', '/etc/passwd')).toThrow(ForbiddenException);
+    });
+  });
 });

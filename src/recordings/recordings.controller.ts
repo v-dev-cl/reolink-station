@@ -32,13 +32,13 @@ export class RecordingsController {
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', contentType(path));
     if (range) {
-      const { stream } = await this.recordings.openRead(id, path, range);
+      const { stream } = await this.recordings.openRead(id, path, range, size);
       res.status(206);
       res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${size}`);
       res.setHeader('Content-Length', String(range.end - range.start + 1));
       stream.pipe(res);
     } else {
-      const { stream } = await this.recordings.openRead(id, path);
+      const { stream } = await this.recordings.openRead(id, path, undefined, size);
       res.status(200);
       res.setHeader('Content-Length', String(size));
       stream.pipe(res);

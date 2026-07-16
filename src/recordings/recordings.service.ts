@@ -51,14 +51,14 @@ export class RecordingsService {
     });
   }
 
-  async openRead(profileId: string, relPath: string, range?: RangeSpec): Promise<{ stream: Readable; size: number }> {
+  async openRead(profileId: string, relPath: string, range?: RangeSpec, size?: number): Promise<{ stream: Readable; size: number }> {
     const { cfg, base } = await this.conn(profileId);
     const abs = resolveSafe(base, relPath);
     return this.pool.withConnection(cfg, async (c) => {
-      const st = await c.stat(abs).catch(() => { throw new NotFoundException('file not found'); });
+      const fileSize = size ?? (await c.stat(abs).catch(() => { throw new NotFoundException('file not found'); })).size;
       const opts = range ? { readStreamOptions: { start: range.start, end: range.end } } : undefined;
       const buf = (await c.get(abs, undefined, opts as never)) as Buffer;
-      return { stream: Readable.from(buf), size: st.size };
+      return { stream: Readable.from(buf), size: fileSize };
     });
   }
 
