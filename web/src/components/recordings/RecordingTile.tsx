@@ -1,5 +1,5 @@
 'use client';
-import { isImage, recordingFileUrl, RecordingEntry } from '@/lib/recordings';
+import { isImage, isVideo, recordingFileUrl, RecordingEntry } from '@/lib/recordings';
 
 export default function RecordingTile({ profileId, entry, selected, onToggle, onOpen }: {
   profileId: string;
@@ -26,8 +26,10 @@ export default function RecordingTile({ profileId, entry, selected, onToggle, on
             loading="lazy"
             className="h-28 w-full rounded object-cover"
           />
-        ) : (
+        ) : isVideo(entry.name) ? (
           <div className="flex h-28 w-full items-center justify-center rounded bg-neutral-800 text-3xl">▶</div>
+        ) : (
+          <div className="flex h-28 w-full items-center justify-center rounded bg-neutral-800 text-3xl">📄</div>
         )}
       </button>
       <p className="mt-1 truncate text-xs text-neutral-400">{entry.name}</p>

@@ -26,6 +26,13 @@ it('lists folders at the root and drills down to files', async () => {
   expect(screen.getByText('shot.jpg')).toBeInTheDocument();
 });
 
+it('shows the Prune control at the root, which only contains subfolders', async () => {
+  vi.stubGlobal('fetch', stubListing());
+  render(<RecordingsBrowser profileId="p1" />);
+  await screen.findByRole('button', { name: /open folder 2026/i });
+  expect(screen.getByRole('button', { name: /prune/i })).toBeInTheDocument();
+});
+
 it('breadcrumb returns to the root listing', async () => {
   vi.stubGlobal('fetch', stubListing());
   render(<RecordingsBrowser profileId="p1" />);

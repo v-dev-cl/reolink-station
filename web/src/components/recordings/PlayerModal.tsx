@@ -1,5 +1,5 @@
 'use client';
-import { isImage, recordingFileUrl, RecordingEntry } from '@/lib/recordings';
+import { isImage, isVideo, recordingFileUrl, RecordingEntry } from '@/lib/recordings';
 
 export default function PlayerModal({ profileId, entry, onClose }: {
   profileId: string;
@@ -18,8 +18,10 @@ export default function PlayerModal({ profileId, entry, onClose }: {
         {isImage(entry.name) ? (
           // eslint-disable-next-line @next/next/no-img-element -- authenticated same-origin media
           <img src={url} alt={entry.name} className="mx-auto max-h-[80vh] rounded" />
-        ) : (
+        ) : isVideo(entry.name) ? (
           <video data-testid="player" src={url} controls autoPlay className="mx-auto max-h-[80vh] w-full rounded" />
+        ) : (
+          <p className="text-neutral-300">Cannot preview this file type.</p>
         )}
         <div className="mt-2 flex items-center justify-between text-sm text-neutral-300">
           <span className="truncate">{entry.name}</span>

@@ -70,25 +70,26 @@ export default function RecordingsBrowser({ profileId }: { profileId: string }) 
       )}
 
       {files.length > 0 && (
-        <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {files.map((f) => (
-              <RecordingTile
-                key={f.path}
-                profileId={profileId}
-                entry={f}
-                selected={selected.has(f.path)}
-                onToggle={() => toggle(f.path)}
-                onOpen={() => setOpen(f)}
-              />
-            ))}
-          </div>
-          <ManagerBar
-            profileId={profileId}
-            selected={[...selected]}
-            onMutated={() => setReloadKey((k) => k + 1)}
-          />
-        </>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {files.map((f) => (
+            <RecordingTile
+              key={f.path}
+              profileId={profileId}
+              entry={f}
+              selected={selected.has(f.path)}
+              onToggle={() => toggle(f.path)}
+              onOpen={() => setOpen(f)}
+            />
+          ))}
+        </div>
+      )}
+
+      {entries !== null && !error && (
+        <ManagerBar
+          profileId={profileId}
+          selected={[...selected]}
+          onMutated={() => setReloadKey((k) => k + 1)}
+        />
       )}
 
       {open && <PlayerModal profileId={profileId} entry={open} onClose={() => setOpen(null)} />}
