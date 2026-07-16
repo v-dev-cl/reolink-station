@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Readable } from 'node:stream';
 import { SftpConnConfig, SftpPoolService } from './sftp-pool.service';
 import { CameraProfilesService } from '../camera-profiles/camera-profiles.service';
@@ -7,6 +7,8 @@ import { RangeSpec, RecordingEntry } from './types';
 
 @Injectable()
 export class RecordingsService {
+  private readonly logger = new Logger(RecordingsService.name);
+
   constructor(
     private readonly pool: SftpPoolService,
     private readonly profiles: CameraProfilesService,
@@ -45,13 +47,12 @@ export class RecordingsService {
   async openRead(profileId: string, relPath: string, range?: RangeSpec): Promise<{ stream: Readable; size: number }> {
     const { cfg, base } = await this.conn(profileId);
     const abs = resolveSafe(base, relPath);
-    const st = await this.stat(profileId, relPath);
-    // Buffer the (ranged) bytes through the pooled connection, then release it.
-    const buf = await this.pool.withConnection(cfg, async (c) => {
+    return this.pool.withConnection(cfg, async (c) => {
+      const st = await c.stat(abs).catch(() => { throw new NotFoundException('file not found'); });
       const opts = range ? { readStreamOptions: { start: range.start, end: range.end } } : undefined;
-      return (await c.get(abs, undefined, opts as never)) as Buffer;
+      const buf = (await c.get(abs, undefined, opts as never)) as Buffer;
+      return { stream: Readable.from(buf), size: st.size };
     });
-    return { stream: Readable.from(buf), size: st.size };
   }
 
   async deleteFiles(profileId: string, relPaths: string[]): Promise<{ deleted: number }> {
@@ -60,7 +61,7 @@ export class RecordingsService {
     return this.pool.withConnection(cfg, async (c) => {
       let deleted = 0;
       for (const abs of abses) {
-        try { await c.delete(abs); deleted++; } catch { /* already gone */ }
+        try { await c.delete(abs); deleted++; } catch (err) { this.logger.warn(`failed to delete ${abs}: ${err instanceof Error ? err.message : err}`); }
       }
       return { deleted };
     });
@@ -76,7 +77,7 @@ export class RecordingsService {
         for (const i of items) {
           const full = `${dir}/${i.name}`;
           if (i.type === 'd') await walk(full);
-          else if (i.modifyTime < cutoff) { try { await c.delete(full); deleted++; } catch { /* ignore */ } }
+          else if (i.modifyTime < cutoff) { try { await c.delete(full); deleted++; } catch (err) { this.logger.warn(`prune: failed to delete ${full}: ${err instanceof Error ? err.message : err}`); } }
         }
       };
       await walk(resolveSafe(base, ''));
