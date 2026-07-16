@@ -42,6 +42,17 @@ export class CryptoService {
   isEncrypted(value: string): boolean {
     if (typeof value !== 'string') return false;
     const parts = value.split(':');
-    return parts.length === 3 && parts[0].length === 16 && parts[1].length === 22;
+    if (parts.length !== 3) return false;
+    const [iv, tag, ct] = parts;
+    const b64url = /^[A-Za-z0-9_-]+$/;
+    if (iv.length !== 16 || tag.length !== 22 || ct.length === 0) return false;
+    if (!b64url.test(iv) || !b64url.test(tag) || !b64url.test(ct)) return false;
+    // Definitive check: only a value that authenticates under our key counts as encrypted.
+    try {
+      this.decrypt(value);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

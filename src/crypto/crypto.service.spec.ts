@@ -33,4 +33,17 @@ describe('CryptoService', () => {
     const badCfg = { getOrThrow: () => 'too-short' } as unknown as ConfigService;
     expect(() => new CryptoService(badCfg)).toThrow();
   });
+
+  it('rejects a shape-matching but non-authenticating spoof', () => {
+    expect(svc.isEncrypted('aaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbb:x')).toBe(false);
+  });
+
+  it('rejects malformed payloads with the wrong number of parts', () => {
+    expect(svc.isEncrypted('a:b')).toBe(false);
+    expect(svc.isEncrypted('a:b:c:d')).toBe(false);
+  });
+
+  it('still recognizes real ciphertext (round-trips through decrypt)', () => {
+    expect(svc.isEncrypted(svc.encrypt('a-real-secret'))).toBe(true);
+  });
 });
