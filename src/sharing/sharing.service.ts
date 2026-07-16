@@ -23,4 +23,8 @@ export class SharingService {
     await this.shares.delete({ cameraProfileId: profileId, granteeId });
     return { ok: true };
   }
+
+  async revokeAllForProfile(profileId: string): Promise<void> {
+    await this.shares.delete({ cameraProfileId: profileId });
+  }
 }

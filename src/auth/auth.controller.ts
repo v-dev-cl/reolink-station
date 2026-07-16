@@ -24,7 +24,9 @@ export class AuthController {
     }
     res.cookie('access_token', this.auth.signToken(user), {
       httpOnly: true,
-      secure: this.config.get('COOKIE_SECURE') === 'true',
+      secure:
+        this.config.get('NODE_ENV') === 'production' ||
+        this.config.get('COOKIE_SECURE') === 'true',
       sameSite: 'lax',
       maxAge: 7 * 24 * 3600 * 1000,
     });

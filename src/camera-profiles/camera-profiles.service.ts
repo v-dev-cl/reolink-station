@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CryptoService } from '../crypto/crypto.service';
-import { CameraShareEntity } from '../sharing/camera-share.entity';
+import { SharingService } from '../sharing/sharing.service';
 import { CameraProfileEntity } from './camera-profile.entity';
 import {
   CAMERA_SECRET_KEYS, CameraConfig, STORAGE_SECRET_KEYS, StorageConfig,
@@ -15,8 +15,8 @@ import { UpdateCameraProfileDto } from './dto/update-camera-profile.dto';
 export class CameraProfilesService {
   constructor(
     @InjectRepository(CameraProfileEntity) private readonly repo: Repository<CameraProfileEntity>,
-    @InjectRepository(CameraShareEntity) private readonly shares: Repository<CameraShareEntity>,
     private readonly crypto: CryptoService,
+    private readonly sharing: SharingService,
   ) {}
 
   private encSecrets<T extends Record<string, any>>(obj: T, keys: (keyof T)[]): T {
@@ -89,7 +89,7 @@ export class CameraProfilesService {
   }
 
   async remove(id: string) {
-    await this.shares.delete({ cameraProfileId: id });
+    await this.sharing.revokeAllForProfile(id);
     await this.repo.delete({ id });
     return { ok: true };
   }

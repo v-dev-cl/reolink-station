@@ -12,6 +12,6 @@ import { UsersModule } from '../users/users.module';
   imports: [TypeOrmModule.forFeature([CameraShareEntity, CameraProfileEntity]), UsersModule],
   providers: [CameraAccessService, CameraAccessGuard, SharingService],
   controllers: [SharingController],
-  exports: [CameraAccessService, CameraAccessGuard],
+  exports: [CameraAccessService, CameraAccessGuard, SharingService],
 })
 export class SharingModule {}

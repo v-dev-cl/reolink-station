@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AuthUser, CurrentUser } from '../auth/current-user.decorator';
 import { CameraAccessGuard, RequireManage } from '../sharing/camera-access.guard';
@@ -28,7 +28,8 @@ export class CameraProfilesController {
     for (const id of ids) {
       try {
         out.push(await this.profiles.getMasked(id));
-      } catch {
+      } catch (e) {
+        if (!(e instanceof NotFoundException)) throw e;
         // stale/removed profile — skip
       }
     }
