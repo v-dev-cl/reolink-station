@@ -28,4 +28,18 @@ describe('LiveConfigService', () => {
     expect(yaml).toContain('aaa: rtsp://neolink:8554/aaa');
     expect(yaml).toContain('bbb: rtsp://neolink:8554/bbb');
   });
+
+  it('escapes quotes in a camera password so the TOML stays valid', async () => {
+    const trickyFake = {
+      listAllIds: async () => ['xyz'],
+      findOneDecryptedForConnection: async () => ({
+        id: 'xyz',
+        camera: { uid: 'UID', password: 'pw"; injected = "x', codec: 'h264' },
+      }),
+    } as unknown as CameraProfilesService;
+    const svc2 = new LiveConfigService(trickyFake);
+    const toml = await svc2.neolinkConfig();
+    // JSON.stringify escapes the quote → \" — no raw unescaped password quote
+    expect(toml).toContain('password = "pw\\"; injected = \\"x"');
+  });
 });
