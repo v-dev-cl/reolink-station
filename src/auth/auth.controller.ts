@@ -18,7 +18,8 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const user = await this.users.findByEmail(dto.email);
-    if (!user || !(await this.auth.verifyPassword(user.passwordHash, dto.password))) {
+    const valid = await this.auth.validateCredentials(user, dto.password);
+    if (!user || !valid) {
       throw new UnauthorizedException('invalid credentials');
     }
     res.cookie('access_token', this.auth.signToken(user), {

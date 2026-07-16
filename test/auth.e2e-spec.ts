@@ -35,12 +35,20 @@ describe('Auth (e2e)', () => {
     const cookie = res.headers['set-cookie'][0];
     expect(cookie).toContain('access_token=');
     expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('SameSite=Lax');
   });
 
   it('rejects a wrong password', () => {
     return request(app.getHttpServer())
       .post('/auth/login')
       .send({ email: 'login@example.com', password: 'wrong' })
+      .expect(401);
+  });
+
+  it('rejects a nonexistent email with 401 (no enumeration signal)', () => {
+    return request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'nobody@example.com', password: 'whatever' })
       .expect(401);
   });
 
