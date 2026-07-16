@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { listRecordings, RecordingEntry } from '@/lib/recordings';
 import RecordingTile from './RecordingTile';
 import PlayerModal from './PlayerModal';
@@ -11,16 +11,18 @@ export default function RecordingsBrowser({ profileId }: { profileId: string }) 
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [open, setOpen] = useState<RecordingEntry | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
-  const refresh = useCallback(() => {
+  useEffect(() => {
+    let ignore = false;
     setEntries(null);
     setError('');
+    setSelected(new Set());
     listRecordings(profileId, dir)
-      .then(setEntries)
-      .catch(() => { setError('Could not load recordings'); setEntries([]); });
-  }, [profileId, dir]);
-
-  useEffect(() => { setSelected(new Set()); refresh(); }, [refresh]);
+      .then((res) => { if (!ignore) setEntries(res); })
+      .catch(() => { if (!ignore) { setError('Could not load recordings'); setEntries([]); } });
+    return () => { ignore = true; };
+  }, [profileId, dir, reloadKey]);
 
   const dirs = (entries ?? []).filter((e) => e.type === 'dir').sort((a, b) => b.name.localeCompare(a.name));
   const files = (entries ?? []).filter((e) => e.type === 'file').sort((a, b) => b.mtime - a.mtime);
@@ -84,7 +86,7 @@ export default function RecordingsBrowser({ profileId }: { profileId: string }) 
           <ManagerBar
             profileId={profileId}
             selected={[...selected]}
-            onMutated={() => { setSelected(new Set()); refresh(); }}
+            onMutated={() => setReloadKey((k) => k + 1)}
           />
         </>
       )}
