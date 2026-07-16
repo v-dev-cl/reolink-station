@@ -102,4 +102,43 @@ describe('Recordings (e2e)', () => {
       .get(`/camera-profiles/${profileId}/recordings/file?path=2026/07/15/clip.mp4`)
       .set('Cookie', `access_token=${auth.signToken(stranger)}`).expect(404);
   });
+
+  it('owner deletes a file (manage)', async () => {
+    await pool.withConnection(STORAGE, async (c) => { await c.put(Buffer.from('x'), '/reolink/2026/07/15/todelete.mp4'); });
+    const res = await request(app.getHttpServer())
+      .post(`/camera-profiles/${profileId}/recordings/delete`).set('Cookie', cookie)
+      .send({ paths: ['2026/07/15/todelete.mp4'] }).expect(201);
+    expect(res.body.deleted).toBe(1);
+  });
+
+  it('a view grantee cannot delete (403)', async () => {
+    const viewer = await users.create('viewer@x.com', await auth.hashPassword('pw'));
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${profileId}/shares`).set('Cookie', cookie)
+      .send({ email: 'viewer@x.com', permission: 'view' }).expect(201);
+    await request(app.getHttpServer())
+      .post(`/camera-profiles/${profileId}/recordings/delete`).set('Cookie', `access_token=${auth.signToken(viewer)}`)
+      .send({ paths: ['2026/07/15/clip.mp4'] }).expect(403);
+  });
+
+  it('prune rejects a traversal path implicitly and deletes old files', async () => {
+    await pool.withConnection(STORAGE, async (c) => {
+      await c.mkdir('/reolink/2000/01/01', true);
+      await c.put(Buffer.from('old'), '/reolink/2000/01/01/old.mp4');
+      // atmoz/sftp stamps mtime as "now" on upload regardless of the path used, so
+      // old.mp4 needs its mtime explicitly backdated for prune() to have a genuinely
+      // old file to find (same fixture-seeding gotcha as recordings.service.spec.ts's
+      // "prunes files older than N days" case). ssh2-sftp-client doesn't wrap SFTP
+      // SETSTAT, so reach the underlying ssh2 sftp handle directly (test-seed only).
+      const raw = (c as unknown as { sftp: { utimes: (p: string, a: Date, m: Date, cb: (err: unknown) => void) => void } }).sftp;
+      const oldDate = new Date('2000-01-01T00:00:00Z');
+      await new Promise<void>((resolve, reject) => {
+        raw.utimes('/reolink/2000/01/01/old.mp4', oldDate, oldDate, (err) => (err ? reject(err) : resolve()));
+      });
+    });
+    const res = await request(app.getHttpServer())
+      .post(`/camera-profiles/${profileId}/recordings/prune`).set('Cookie', cookie)
+      .send({ olderThanDays: 30 }).expect(201);
+    expect(res.body.deleted).toBeGreaterThanOrEqual(1);
+  });
 });
