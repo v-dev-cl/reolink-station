@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { databaseConfig } from './config/database.config';
 import { HealthController } from './health/health.controller';
 import { CryptoModule } from './crypto/crypto.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { CryptoModule } from './crypto/crypto.module';
     }),
     TypeOrmModule.forRootAsync({ inject: [ConfigService], useFactory: databaseConfig }),
     CryptoModule,
+    UsersModule,
   ],
   controllers: [HealthController],
 })
