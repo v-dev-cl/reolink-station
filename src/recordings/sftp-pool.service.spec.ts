@@ -29,6 +29,14 @@ describe('SftpPoolService (integration, needs sftp-test container)', () => {
     expect(peak).toBeLessThanOrEqual(4); // but capped
   });
 
+  it('keys pools by password hash so a wrong-password config cannot poison the real one', () => {
+    const key = (c: SftpConnConfig) => (pool as unknown as { key(c: SftpConnConfig): string }).key(c);
+    const bad: SftpConnConfig = { ...cfg, pass: 'wrong-password' };
+    expect(key(bad)).not.toBe(key(cfg)); // same host/port/user, different password → distinct pool
+    expect(key({ ...cfg })).toBe(key(cfg)); // identical credentials still share one pool
+    expect(key(bad)).not.toContain('wrong-password'); // raw password never appears in the key
+  });
+
   it('rejects with the operation error but still releases the connection', async () => {
     await expect(
       pool.withConnection(cfg, () => Promise.reject(new Error('boom'))),
