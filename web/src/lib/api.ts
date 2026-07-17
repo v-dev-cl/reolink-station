@@ -11,6 +11,9 @@ async function req<T>(method: string, path: string, body?: unknown): Promise<T> 
   });
   if (!res.ok) {
     if (res.status === 401 && path !== '/auth/login' && typeof window !== 'undefined') {
+      // Clear the rejected cookie first: middleware bounces /login → / while a cookie
+      // exists, so redirecting with a stale token would loop forever.
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' }).catch(() => undefined);
       window.location.assign('/login');
     }
     throw new ApiError(res.status, await res.text().catch(() => undefined));
