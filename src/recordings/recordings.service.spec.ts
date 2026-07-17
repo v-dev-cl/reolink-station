@@ -1,3 +1,4 @@
+import { Writable } from 'node:stream';
 import { Test } from '@nestjs/testing';
 import { SftpPoolModule } from './sftp-pool.module';
 import { SftpPoolService } from './sftp-pool.service';
@@ -56,12 +57,18 @@ describe('RecordingsService (integration)', () => {
     expect(clip.path).toBe('2026/07/15/clip.mp4');
   });
 
-  it('reads a byte range', async () => {
-    const { stream, size } = await svc.openRead(P, '2026/07/15/clip.mp4', { start: 0, end: 4 });
-    expect(size).toBe(15);
+  it('streams a byte range to a writable without buffering the file', async () => {
     const chunks: Buffer[] = [];
-    for await (const c of stream) chunks.push(c as Buffer);
+    const dst = new Writable({ write(c, _enc, cb) { chunks.push(c as Buffer); cb(); } });
+    await svc.streamTo(P, '2026/07/15/clip.mp4', dst, { start: 0, end: 4 });
     expect(Buffer.concat(chunks).toString()).toBe('hello');
+  });
+
+  it('streams the whole file when no range is given', async () => {
+    const chunks: Buffer[] = [];
+    const dst = new Writable({ write(c, _enc, cb) { chunks.push(c as Buffer); cb(); } });
+    await svc.streamTo(P, '2026/07/15/clip.mp4', dst);
+    expect(Buffer.concat(chunks).toString()).toBe('hello-mp4-bytes');
   });
 
   it('rejects a traversal path', async () => {

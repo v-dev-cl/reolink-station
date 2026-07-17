@@ -59,11 +59,20 @@ describe('Recordings (e2e)', () => {
     expect(res.body.toString()).toBe('01234');
   });
 
-  it('serves the full file (200) without a Range header', async () => {
+  it('serves the full file (200) without a Range header, marked browser-cacheable', async () => {
     const res = await request(app.getHttpServer())
       .get(`/camera-profiles/${profileId}/recordings/file?path=2026/07/15/clip.mp4`)
       .set('Cookie', cookie).expect(200);
     expect(res.body.toString()).toBe('0123456789');
+    expect(res.headers['cache-control']).toContain('immutable');
+  });
+
+  it('HEAD returns the headers without transferring the body', async () => {
+    const res = await request(app.getHttpServer())
+      .head(`/camera-profiles/${profileId}/recordings/file?path=2026/07/15/clip.mp4`)
+      .set('Cookie', cookie).expect(200);
+    expect(res.headers['content-length']).toBe('10');
+    expect(res.body?.length ?? 0).toBe(0);
   });
 
   it('a non-owner cannot list (404)', async () => {
