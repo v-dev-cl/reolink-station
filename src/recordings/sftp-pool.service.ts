@@ -5,7 +5,9 @@ import SftpClient from 'ssh2-sftp-client';
 
 export interface SftpConnConfig { host: string; port: number; user: string; pass: string }
 
-const MAX_PER_BOX = 4;
+// Hetzner allows 10 concurrent connections per (sub)account; the camera's own FTP
+// uploads share that budget, so stay comfortably below it.
+const MAX_PER_BOX = 6;
 const IDLE_MS = 30_000;
 
 @Injectable()

@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Logger, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CameraAccessGuard } from '../sharing/camera-access.guard';
@@ -7,6 +7,8 @@ import { RecordingsService } from './recordings.service';
 @UseGuards(JwtAuthGuard, CameraAccessGuard)
 @Controller('camera-profiles/:id/recordings')
 export class RecordingsController {
+  private readonly logger = new Logger(RecordingsController.name);
+
   constructor(private readonly recordings: RecordingsService) {}
 
   @Get('list')
@@ -31,17 +33,26 @@ export class RecordingsController {
     }
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Type', contentType(path));
+    // recordings are timestamped and never rewritten — safe for the browser to cache
+    res.setHeader('Cache-Control', 'private, max-age=86400, immutable');
     if (range) {
-      const { stream } = await this.recordings.openRead(id, path, range, size);
       res.status(206);
       res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${size}`);
       res.setHeader('Content-Length', String(range.end - range.start + 1));
-      stream.pipe(res);
     } else {
-      const { stream } = await this.recordings.openRead(id, path, undefined, size);
       res.status(200);
       res.setHeader('Content-Length', String(size));
-      stream.pipe(res);
+    }
+    if (req.method === 'HEAD') {
+      res.end();
+      return;
+    }
+    try {
+      await this.recordings.streamTo(id, path, res, range ?? undefined);
+    } catch (err) {
+      // headers are already sent — an HTTP error is no longer possible; cut the connection
+      this.logger.warn(`stream ${path} failed: ${err instanceof Error ? err.message : err}`);
+      res.destroy();
     }
   }
 }

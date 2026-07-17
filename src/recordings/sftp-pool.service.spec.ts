@@ -12,7 +12,7 @@ describe('SftpPoolService (integration, needs sftp-test container)', () => {
     expect(Array.isArray(list)).toBe(true);
   });
 
-  it('never runs more than 4 operations concurrently (enforces max)', async () => {
+  it('never runs more than 6 operations concurrently (enforces max)', async () => {
     let inFlight = 0; let peak = 0;
     await Promise.all(
       Array.from({ length: 12 }, () =>
@@ -26,7 +26,7 @@ describe('SftpPoolService (integration, needs sftp-test container)', () => {
       ),
     );
     expect(peak).toBeGreaterThan(1);   // genuinely concurrent
-    expect(peak).toBeLessThanOrEqual(4); // but capped
+    expect(peak).toBeLessThanOrEqual(6); // but capped
   });
 
   it('keys pools by password hash so a wrong-password config cannot poison the real one', () => {
