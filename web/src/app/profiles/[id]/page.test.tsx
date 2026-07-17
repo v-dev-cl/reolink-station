@@ -43,4 +43,6 @@ it('renders the profile once the fetch succeeds', async () => {
   expect(await screen.findByText('Front door')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /view recordings/i }))
     .toHaveAttribute('href', expect.stringMatching(/\/profiles\/.+\/recordings$/));
+  expect(screen.getByRole('link', { name: /live view/i }))
+    .toHaveAttribute('href', expect.stringMatching(/\/profiles\/.+\/live$/));
 });
