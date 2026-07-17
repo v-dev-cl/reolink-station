@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { createPool, Pool } from 'generic-pool';
 import SftpClient from 'ssh2-sftp-client';
@@ -12,13 +13,18 @@ export class SftpPoolService implements OnModuleDestroy {
   private readonly pools = new Map<string, Pool<SftpClient>>();
   private readonly cfgs = new Map<string, SftpConnConfig>();
 
-  private key(c: SftpConnConfig): string { return `${c.host}:${c.port}:${c.user}`; }
+  // The password hash is part of the key: host/user of a Hetzner box are guessable, so a
+  // credential-less key would let one tenant's (wrong) config poison another tenant's pool.
+  private key(c: SftpConnConfig): string {
+    const passTag = createHash('sha256').update(c.pass).digest('hex').slice(0, 16);
+    return `${c.host}:${c.port}:${c.user}:${passTag}`;
+  }
 
   private poolFor(cfg: SftpConnConfig): Pool<SftpClient> {
     const k = this.key(cfg);
-    this.cfgs.set(k, cfg); // always refresh to the latest credentials
     let pool = this.pools.get(k);
     if (!pool) {
+      this.cfgs.set(k, cfg);
       pool = createPool<SftpClient>(
         {
           create: async () => {
