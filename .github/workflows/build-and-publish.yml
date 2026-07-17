@@ -8,10 +8,21 @@ jobs:
       - uses: pnpm/action-setup@v4
         with: { version: 10.11.0 }
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: pnpm }
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: "**/pnpm-lock.yaml"
+      # backend (root package)
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
-      # (unit tests here run against a service Postgres; see README)
+      # frontend (web/ is its own pnpm package, not a workspace member)
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - run: pnpm build
+        working-directory: web
+      - run: pnpm test
+        working-directory: web
+      # backend unit/e2e tests need the docker-compose.test.yml services (Postgres + SFTP) — tracked follow-up
       - name: Image tag from branch
         run: echo "TAG=${GITHUB_REF_NAME//\//-}" >> "$GITHUB_ENV"
       - run: echo "would build/push reolink-station-api:${TAG}"
