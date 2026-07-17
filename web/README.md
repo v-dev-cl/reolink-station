@@ -88,6 +88,10 @@ TEST_EMAIL=e2e@x.com TEST_PASSWORD=password123 pnpm e2e
 
 Browse per-camera recordings at `/profiles/<id>/recordings` (linked from the "View recordings →" button on the profile detail page). The browser navigates the storage tree (typically `/YYYY/MM/DD`), shows thumbnails, and plays clips with seeking; thumbnails and video stream through the authenticated `/api` proxy, which forwards `Range` requests so seeking works without buffering the whole file. Deleting recordings (single or bulk via selection) and manual "older than N days" pruning are available from the manager bar and require `manage` permission on the profile — view-only shares get a friendly 403 message instead of the controls.
 
+## Live view (frontend)
+
+`/profiles/<id>/live` (linked from the "Live view →" button on the profile detail page) streams the camera via the authenticated `/api` proxy (go2rtc MP4) and offers PTZ controls. PTZ requires `manage` permission on the profile — a view-only grantee gets a friendly permission message instead of working controls. **Real streaming and PTZ require the Plan 3b services (neolink, go2rtc, the MQTT broker) running against the physical camera; this cannot be verified in this sandbox and is an explicit manual smoke test, not an assumed-passing check.**
+
 ## Out of scope (this plan)
 
-Live view and a shares list/revoke UI are not part of this plan; a download button is deferred as polish (the browser can already save clips from the player or `recordingFileUrl` directly).
+A shares list/revoke UI is not part of this plan; a download button is deferred as polish (the browser can already save clips from the player or `recordingFileUrl` directly).

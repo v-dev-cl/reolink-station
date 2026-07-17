@@ -30,6 +30,12 @@ export default function ProfileDetail({ params }: { params: Promise<{ id: string
         >
           View recordings →
         </Link>
+        <Link
+          href={`/profiles/${id}/live`}
+          className="mx-6 mt-2 inline-block rounded bg-blue-600 px-3 py-1.5 text-sm"
+        >
+          Live view →
+        </Link>
         <ProfileForm mode="edit" profileId={id} initial={p} onDone={() => router.replace('/')} />
         <SharePanel profileId={id} />
       </main>
