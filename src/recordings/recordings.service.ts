@@ -3,6 +3,7 @@ import { Writable } from 'node:stream';
 import { SftpConnConfig, SftpPoolService } from './sftp-pool.service';
 import { CameraProfilesService } from '../camera-profiles/camera-profiles.service';
 import { resolveSafe } from './path-safety';
+import { RawSftp, windowedRead } from './sftp-windowed-read';
 import { RangeSpec, RecordingEntry } from './types';
 import { TtlCache } from './recordings.cache';
 
@@ -10,6 +11,9 @@ import { TtlCache } from './recordings.cache';
 export class RecordingsService {
   private readonly logger = new Logger(RecordingsService.name);
   private readonly listCache = new TtlCache<RecordingEntry[]>(10_000);
+  // Recordings are timestamped and immutable, so stat results can live long; they are
+  // invalidated on delete/prune. Saves one SFTP round-trip + pool acquire per playback seek.
+  private readonly statCache = new TtlCache<{ size: number; mtime: number }>(300_000);
 
   constructor(
     private readonly pool: SftpPoolService,
@@ -43,41 +47,29 @@ export class RecordingsService {
   }
 
   async stat(profileId: string, relPath: string): Promise<{ size: number; mtime: number }> {
+    const cacheKey = `${profileId}:${relPath}`;
+    const cached = this.statCache.get(cacheKey);
+    if (cached) return cached;
     const { cfg, base } = await this.conn(profileId);
     const abs = resolveSafe(base, relPath);
-    return this.pool.withConnection(cfg, async (c) => {
-      const st = await c.stat(abs).catch(() => { throw new NotFoundException('file not found'); });
-      return { size: st.size, mtime: st.modifyTime };
+    const st = await this.pool.withConnection(cfg, async (c) => {
+      const s = await c.stat(abs).catch(() => { throw new NotFoundException('file not found'); });
+      return { size: s.size, mtime: s.modifyTime };
     });
+    this.statCache.set(cacheKey, st);
+    return st;
   }
 
-  // Pipes the file (or byte range) from SFTP straight into dst chunk-by-chunk.
-  // Never buffers the file in memory — time-to-first-byte stays flat regardless of clip size.
-  // The pooled connection is released as soon as EITHER side terminates (source end,
-  // client disconnect, or error) — release must never depend on the client's cooperation.
-  async streamTo(profileId: string, relPath: string, dst: Writable, range?: RangeSpec): Promise<void> {
+  // Streams [span.start, span.end] of the file straight from SFTP into dst, in order,
+  // with WINDOW concurrent chunk reads (see sftp-windowed-read.ts) — sequential reads
+  // collapse to tens of KB/s on high-RTT links. Never buffers the file in memory, and
+  // the pooled connection is released as soon as EITHER side terminates.
+  async streamTo(profileId: string, relPath: string, dst: Writable, span: RangeSpec): Promise<void> {
     const { cfg, base } = await this.conn(profileId);
     const abs = resolveSafe(base, relPath);
     await this.pool.withConnection(cfg, async (c) => {
-      const rs = c.createReadStream(
-        abs,
-        range ? { start: range.start, end: range.end, autoClose: true } : { autoClose: true },
-      );
-      await new Promise<void>((resolve, reject) => {
-        let settled = false;
-        const done = (err?: Error | null): void => {
-          if (settled) return;
-          settled = true;
-          rs.destroy();
-          if (err) reject(err);
-          else resolve();
-        };
-        rs.on('error', (e: Error) => done(e));
-        rs.on('end', () => done());
-        dst.on('error', (e: Error) => done(e));
-        dst.on('close', () => done()); // fires after normal finish AND on client abort
-        rs.pipe(dst);
-      });
+      const raw = (c as unknown as { sftp: RawSftp }).sftp;
+      await windowedRead(raw, abs, span.start, span.end, dst);
     });
   }
 
@@ -95,6 +87,7 @@ export class RecordingsService {
     } finally {
       // in finally: a connection drop mid-way may still have deleted files — never serve them stale
       this.listCache.invalidate(`${profileId}:`);
+      this.statCache.invalidate(`${profileId}:`);
     }
   }
 
@@ -117,6 +110,7 @@ export class RecordingsService {
       });
     } finally {
       this.listCache.invalidate(`${profileId}:`);
+      this.statCache.invalidate(`${profileId}:`);
     }
   }
 }

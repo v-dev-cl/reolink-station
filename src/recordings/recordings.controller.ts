@@ -48,7 +48,7 @@ export class RecordingsController {
       return;
     }
     try {
-      await this.recordings.streamTo(id, path, res, range ?? undefined);
+      await this.recordings.streamTo(id, path, res, range ?? { start: 0, end: size - 1 });
     } catch (err) {
       // headers are already sent — an HTTP error is no longer possible; cut the connection
       this.logger.warn(`stream ${path} failed: ${err instanceof Error ? err.message : err}`);
