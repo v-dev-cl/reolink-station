@@ -64,10 +64,10 @@ describe('RecordingsService (integration)', () => {
     expect(Buffer.concat(chunks).toString()).toBe('hello');
   });
 
-  it('streams the whole file when no range is given', async () => {
+  it('streams the whole file via a full span', async () => {
     const chunks: Buffer[] = [];
     const dst = new Writable({ write(c, _enc, cb) { chunks.push(c as Buffer); cb(); } });
-    await svc.streamTo(P, '2026/07/15/clip.mp4', dst);
+    await svc.streamTo(P, '2026/07/15/clip.mp4', dst, { start: 0, end: 14 });
     expect(Buffer.concat(chunks).toString()).toBe('hello-mp4-bytes');
   });
 

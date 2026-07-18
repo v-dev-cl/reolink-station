@@ -42,7 +42,7 @@ export class SftpPoolService implements OnModuleDestroy {
         },
         {
           max: MAX_PER_BOX,
-          min: 0,
+          min: 1, // keep one warm connection — a cold SSH handshake to the box costs seconds on high-RTT links
           idleTimeoutMillis: IDLE_MS,
           evictionRunIntervalMillis: IDLE_MS,
           testOnBorrow: true,
