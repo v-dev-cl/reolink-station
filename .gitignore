@@ -4,3 +4,6 @@ dist/
 .env*
 !.env.example
 !.env.test
+
+# generated media-stack config (neolink.toml holds the decrypted camera password)
+live/
