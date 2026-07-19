@@ -38,6 +38,7 @@ The backend `tsconfig.json` / `tsconfig.build.json` **exclude `web/`** so `nest 
 - **SFTP reads:** pooled `ssh2-sftp-client`; every path confined by `resolveSafe()` (`src/recordings/path-safety.ts`); streaming uses a windowed/pipelined reader (`src/recordings/sftp-windowed-read.ts`) because sequential single-chunk reads collapse to tens of KB/s on high-RTT links. The pool key includes a credential hash — do **not** drop that; it prevents one tenant poisoning another's pooled connection.
 - **Live view:** the camera's stream is bridged by **neolink** (reaches the camera by UID via Reolink's relay — no port-forwarding) → **go2rtc** serves `GET /api/stream.mp4?src=<profileId>` (browser-native fMP4), proxied through the authed backend. **PTZ** publishes to MQTT topic `neolink/<profileId>/control/ptz`. The neolink camera name and the go2rtc stream key must equal the camera-profile UUID. Bring the media stack up per `docs/plan-3b-live-runbook.md`.
 - **Camera codec MUST be H.264.** Browsers and go2rtc's `stream.mp4` can't play H.265, so live view and in-browser recording playback both require H.264. (On the RLC-823S1, 4K is H.265-only, so use 1440p/H.264 for the main stream.)
+- **Camera hardware/firmware field notes** (SD-card capacity bug, post-record firmware bug, codec, FTP-vs-SD gaps) are in `docs/camera-notes.md` — read it before debugging recording/SD behavior against real hardware.
 
 ## Conventions
 
